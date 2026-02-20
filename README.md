@@ -32,4 +32,11 @@ We use the `dbldatageb` (Databricks Labs Data Generator) library to mock a real-
 * **Volume Scaling**: The generator is configured to simulate peak traffic loads, testing the horizontal scalability of the **Spark** engine.
 * **Cost Efficiency**: By generating data directly into the landing zone, we can utilize **Auto Loader** with `trigger(available=true)`, processing all "API" records and then automatically shutting down compute to save costs.
 
+### Data Schema (Mock API)
+The simulated API delivers JSON payloads with the following behavioral attributes:
+* `transaction_id`: Unique identifier for each event.
+* `customer_id`: Used to build long-term behavioral profiles in the **Gold Layer**
+* `device_id` & `ip_address`: Critical for detecting "Mule Account" activity and geographical anomalies.
+* `amount`: Transaction value, used for threshold-based fraud scoring.
+* `is_fraud`: A hidden ground-truth label used to validate the pipeline's accuracy.
 
