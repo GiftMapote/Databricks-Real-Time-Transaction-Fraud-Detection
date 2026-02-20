@@ -14,6 +14,8 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 * **Silver(Enrinched)**: High Integrity data cleansing using **Delta Live Tables (DLT) Expectations** to quarantine malformed or suspicious records.
 * **Gold(Behavioral)**: Business-level aggregates (e.g., transaction velocity, device dismatch )used for real-time alerting and historical reporting
 
+![Fraud Detection Pipeline](docs/Fraud_Detection_Pipeline.png)
+
 ## Tech Stack Decision
 
 | Component | Choice | Rationable (The "why"|
