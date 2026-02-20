@@ -16,7 +16,7 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 
 ## Tech Stack Decision:
 
-| Column 1 | Column 2 | Column 3|
+| Component | Choice | Rationable (The "why"|
 |----------|----------|---------|
 | Row 1    | value    | Value   |
 | Row 2    | Value    | Value   |
