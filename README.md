@@ -18,8 +18,10 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 
 | Component | Choice | Rationable (The "why"|
 |----------|----------|---------|
-| Row 1    | value    | Value   |
-| Row 2    | Value    | Value   |
+| **Ingestion**  | **Auto Loader**  | Chosen for efficient, incremental file discovery without manual schema management.  |
+| **Processing**   | **PySpark**   |  Used for its horizontal scalability and robust support for stateful streaming.  |
+| **Governance** | **Unity Catalog** | Implements fine-grained access control and end-to-end data lineage for audit compliance. |
+| **DevOps** | **GitHub Actions** | Integrated for automated CI/CD, demonstrating production-read engineering practices. |
 
 How will the data be generated
 
