@@ -65,21 +65,21 @@ We follow a standard production hierarchy: `storage-account/container/project/en
 ## Project Roadmap
 ### 1. Setup & Connectivity (The Foundation)
 * [ ] **GitHub Git Folders:** Generate a GitHub Personal Access Token (PAT) and link it in Databricks to enable version control.
-* [] **Unity Catalog External Location:** Register the `giftmapote2ete` storage account as a managed external location.
-* [] **Secret Management:** Store your Azure Client Secrets or GitHub PATs in **Databricks Secrets** (not hardcoded in notebooks!).
+* [ ] **Unity Catalog External Location:** Register the `giftmapote2ete` storage account as a managed external location.
+* [ ] **Secret Management:** Store your Azure Client Secrets or GitHub PATs in **Databricks Secrets** (not hardcoded in notebooks!).
 
 ### 2. Data Engineering Pipeline
-* [] **Mock API** (`00_mock_api): Python script to generate behavioral JSON data drop files into the `landing/` directory.
-* [] **Bronze Layer** (`01_bronze`): Implement **Auto Loader** with schema evolution to ingets raw data into Delta format/
-* [] **Silver Layer** (`02_silver`): Apply **DLT Expectations** for data quality and quarantine malformed records.
-* [] **Gold Layer** (`02_gold`): Create stateful aggregates (velocity, location shifts) for the final fraud features.
+* [ ] **Mock API** (`00_mock_api): Python script to generate behavioral JSON data drop files into the `landing/` directory.
+* [ ] **Bronze Layer** (`01_bronze`): Implement **Auto Loader** with schema evolution to ingets raw data into Delta format/
+* [ ] **Silver Layer** (`02_silver`): Apply **DLT Expectations** for data quality and quarantine malformed records.
+* [ ] **Gold Layer** (`02_gold`): Create stateful aggregates (velocity, location shifts) for the final fraud features.
 
 ### 3. Automation & Quality 
-* [] **Unit Testing:** Create a small test suite in the `tests/` folder to validate the fraud logic.
-* [] **Orchestation (Workflows):** Databricks job that chains all the notebooks togehter with "On Failure" email notification.
-* [] **CI/CD Pipeline:** Create a simple **GitHub Action** that validates code formatting for every push.
+* [ ] **Unit Testing:** Create a small test suite in the `tests/` folder to validate the fraud logic.
+* [ ] **Orchestation (Workflows):** Databricks job that chains all the notebooks togehter with "On Failure" email notification.
+* [ ] **CI/CD Pipeline:** Create a simple **GitHub Action** that validates code formatting for every push.
 
 ### 4. Observability & Finalization
-* [] **Real-Time Dashboard:** Build a **Databricks SQL Dashboard** showing "Total Fraud Prevented" and "System Latency".
-* [] **Final Documentation:** Ensure the README file includes all diagrams and instructions on how to run the pipeline.
+* [ ] **Real-Time Dashboard:** Build a **Databricks SQL Dashboard** showing "Total Fraud Prevented" and "System Latency".
+* [ ] **Final Documentation:** Ensure the README file includes all diagrams and instructions on how to run the pipeline.
 
