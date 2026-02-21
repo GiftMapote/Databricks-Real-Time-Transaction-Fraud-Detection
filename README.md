@@ -42,3 +42,23 @@ The simulated API delivers JSON payloads with the following behavioral attribute
 * `amount`: Transaction value, used for threshold-based fraud scoring.
 * `is_fraud`: A hidden ground-truth label used to validate the pipeline's accuracy.
 
+## Data Infrastructure & Naming Convention
+This project utilizes **Azure Data Lake Storage (ADLS) Gen2** as the underlying storage layer, managed via **Unity Catalog External Locations.**
+
+### Storahe Hierachy & Nating Convention
+We follow a standard production hierarchy: `storage-account/container/project/environment/layer/.`
+
+### Storage Paths
+| Environment | Layer | Full ABFSS Path |
+|-------------|-------|-----------------|
+| **Landing** | **Raw API** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/raw/transactions/` |
+| **Bronze** | **Raw Delta** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/delta/bronze_transactions/` |
+| **Silver** | **Enriched** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/delta/silver_transactions/` |
+| **Gold** | **Behavioral** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/delta/gold_fraud_alerts/` |
+| **System** | **Checkpoints** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/checkpoints/fraud_pipeline/` 
+
+### Engineering Standards & Constraints
+* **Exactly-Once Processing**: The `checkpoints` directory is mandatory for **Structured Streaming**. It ensures that if the cluster restarts, we resume exactly where we left off without duplicating transactions.
+* **Data Format**: All layers from Bronze onwards are stored in **Delta Lake** format. This allows for "Time Travel" (auditing historical data states), which is a key requirement for financial regulators.
+* **Security**: These paths are mounted via **Unity Catalog External Locations**, ensuring that only the specific service principal used by Databircks job can write to these folders
+
