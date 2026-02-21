@@ -64,7 +64,7 @@ We follow a standard production hierarchy: `storage-account/container/project/en
 
 ## Project Roadmap
 ### 1. Setup & Connectivity (The Foundation)
-* [] **GitHub Git Folders:** Generate a GitHub Personal Access Token (PAT) and link it in Databricks to enable version control.
+* [ ] **GitHub Git Folders:** Generate a GitHub Personal Access Token (PAT) and link it in Databricks to enable version control.
 * [] **Unity Catalog External Location:** Register the `giftmapote2ete` storage account as a managed external location.
 * [] **Secret Management:** Store your Azure Client Secrets or GitHub PATs in **Databricks Secrets** (not hardcoded in notebooks!).
 
