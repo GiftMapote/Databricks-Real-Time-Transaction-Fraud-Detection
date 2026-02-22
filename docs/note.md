@@ -1,5 +1,6 @@
 ## Notes of each Step Taken
 
+# Registering the Unity Catalog External Locations
 ### STEP 1: Create an Azure Storage Credential
 Before Databrick can talk to ADLS Gen2, it needs a connection
 1. In Databricks workspace, click **Catalog** in the sidebar
