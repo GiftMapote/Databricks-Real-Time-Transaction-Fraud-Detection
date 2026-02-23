@@ -19,6 +19,8 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 * **Silver(Enrinched)**: High Integrity data cleansing using **Delta Live Tables (DLT) Expectations** to quarantine malformed or suspicious records.
 * **Gold(Behavioral)**: Business-level aggregates used for the **Excecutive Dashboard** and **SQL Alerts**
 
+**Pipeline Orchestration:** > The system is fully automated via a Databricks Workflow. It begins with a Python-based Mock API (Data Generation), followed by an Auto Loader ingestion task (Bronze), and concludes with a Structured Streaming enrichment task (Silver/Gold) that utilizes stateful checkpoints for recovery.
+
 ![Fraud Detection Pipeline](docs/Fraud_Detection_Pipeline.png)
 
 ## 5. Tech Stack Decision
