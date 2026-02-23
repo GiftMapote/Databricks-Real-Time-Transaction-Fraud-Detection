@@ -1,0 +1,752 @@
+{
+  "datasets": [
+    {
+      "name": "86c5dfb1",
+      "displayName": "Gold_Summary_Data",
+      "queryLines": [
+        "-- This query gathers all the \"Intelligence\" from our Gold layer\n",
+        "SELECT \n",
+        "    customer_id, \n",
+        "    amount, \n",
+        "    dist_from_home_km, \n",
+        "    fraud_score,\n",
+        "    event_time\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_transaction_summary"
+      ]
+    },
+    {
+      "name": "a77a9977",
+      "displayName": "Counter",
+      "queryLines": [
+        "-- Executive KPI Summary\n",
+        "\n",
+        "WITH last_24h AS (\n",
+        "    SELECT *\n",
+        "    FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "    WHERE event_time > now() - interval 24 hours\n",
+        "),\n",
+        "\n",
+        "prev_24h AS (\n",
+        "    SELECT COUNT(*) AS prev_alerts\n",
+        "    FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "    WHERE event_time BETWEEN \n",
+        "        now() - interval 48 hours \n",
+        "        AND now() - interval 24 hours\n",
+        ")\n",
+        "\n",
+        "SELECT\n",
+        "    COUNT(*) AS total_alerts,\n",
+        "    ROUND(SUM(amount), 2) AS total_exposure,\n",
+        "    COUNT(DISTINCT customer_id) AS impacted_customers,\n",
+        "    ROUND(\n",
+        "        (\n",
+        "            (COUNT(*) - (SELECT prev_alerts FROM prev_24h))\n",
+        "            / NULLIF((SELECT prev_alerts FROM prev_24h), 0)\n",
+        "        ) * 100,\n",
+        "        2\n",
+        "    ) AS pct_change_vs_yesterday\n",
+        "FROM last_24h"
+      ]
+    },
+    {
+      "name": "d9814475",
+      "displayName": "Action List",
+      "queryLines": [
+        "-- Identifying customers with the highest total flagged amount\n",
+        "SELECT \n",
+        "    customer_id, \n",
+        "    sum(amount) as total_flagged_value \n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "GROUP BY customer_id\n",
+        "ORDER BY total_flagged_value DESC\n",
+        "LIMIT 10"
+      ]
+    },
+    {
+      "name": "e0367dc5",
+      "displayName": "Fraud Distribution",
+      "queryLines": [
+        "-- Breaking down transactions by their Risk Category\n",
+        "-- Fact (Transactions) classified by the Scoring logic\n",
+        "SELECT \n",
+        "    CASE \n",
+        "        WHEN fraud_score >= 70 THEN 'High Risk (Fraud)'\n",
+        "        WHEN fraud_score >= 30 THEN 'Medium Risk (Warning)'\n",
+        "        ELSE 'Low Risk (Safe)'\n",
+        "    END AS risk_level,\n",
+        "    count(*) as transaction_count\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_transaction_summary\n",
+        "GROUP BY 1"
+      ]
+    },
+    {
+      "name": "dcc89a20",
+      "displayName": "High-Risk Alerts (24h)",
+      "queryLines": [
+        "SELECT \n",
+        "  COUNT(*) AS total_alerts\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "WHERE event_time > now() - interval 24 hours"
+      ]
+    },
+    {
+      "name": "dec705ca",
+      "displayName": "Total Exposure (24h)",
+      "queryLines": [
+        "SELECT \n",
+        "  CONCAT('R ', FORMAT_NUMBER(SUM(amount), 0)) AS total_exposure\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "WHERE event_time > now() - interval 24 hours"
+      ]
+    },
+    {
+      "name": "5a852fd2",
+      "displayName": "Customer Impacted",
+      "queryLines": [
+        "SELECT \n",
+        "  COUNT(DISTINCT customer_id) AS impacted_customers\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "WHERE event_time > now() - interval 24 hours"
+      ]
+    },
+    {
+      "name": "3eaa816a",
+      "displayName": "Provincial Fraud Exposure and Alert Summary",
+      "queryLines": [
+        "SELECT \n",
+        "  home_province,\n",
+        "  ROUND(SUM(amount), 2) AS total_exposure,\n",
+        "  COUNT(*) AS alert_count\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "WHERE event_time > now() - interval 24 hours\n",
+        "GROUP BY home_province\n",
+        "ORDER BY total_exposure DESC"
+      ]
+    },
+    {
+      "name": "0cd320da",
+      "displayName": "Gold_Alerts_24h_Base",
+      "queryLines": [
+        "SELECT\n",
+        "    event_time,\n",
+        "    customer_id,\n",
+        "    home_province,\n",
+        "    amount,\n",
+        "    fraud_score,\n",
+        "    dist_from_home_km,\n",
+        "    CASE \n",
+        "        WHEN fraud_score >= 70 THEN 'High Risk (Fraud)'\n",
+        "        WHEN fraud_score >= 30 THEN 'Medium Risk (Warning)'\n",
+        "        ELSE 'Low Risk (Safe)'\n",
+        "    END AS risk_level\n",
+        "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "WHERE event_time > now() - interval 24 hours"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "2ba9e8dd",
+      "displayName": "Fraud Sentinel 1k - Monitoring Executive",
+      "layout": [
+        {
+          "widget": {
+            "name": "geospatial-risk-analysis-distance-vs-transaction-value",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "86c5dfb1",
+                  "fields": [
+                    {
+                      "name": "fraud_score",
+                      "expression": "`fraud_score`"
+                    },
+                    {
+                      "name": "dist_from_home_km",
+                      "expression": "`dist_from_home_km`"
+                    },
+                    {
+                      "name": "amount",
+                      "expression": "`amount`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Geospatial Risk Analysis: Distace vs Transaction Value",
+                "showDescription": true,
+                "description": "Identifying \"Impossible Travel\" anomalies by comapating transaction coordinates to customer home registry.",
+                "headerAlignment": "center"
+              },
+              "mark": {
+                "size": -1.6
+              },
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "dist_from_home_km",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "amount",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "fraud_score",
+                  "scale": {
+                    "type": "quantitative",
+                    "colorRamp": {
+                      "mode": "scheme",
+                      "scheme": "reds"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "sum-of-flagged-customers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d9814475",
+                  "fields": [
+                    {
+                      "name": "sum(total_flagged_value)",
+                      "expression": "SUM(`total_flagged_value`)"
+                    },
+                    {
+                      "name": "customer_id",
+                      "expression": "`customer_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "High-Risk Account Prioritazation",
+                "headerAlignment": "center",
+                "showDescription": true,
+                "description": "A prioritized list of the top 10 customers by total fraudulent transation value. Use this queue to initiate immediate account freezes or secondary identity verificaton"
+              },
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "customer_id",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(total_flagged_value)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(total_flagged_value)",
+                  "scale": {
+                    "type": "quantitative",
+                    "colorRamp": {
+                      "mode": "scheme",
+                      "scheme": "reds"
+                    }
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "transaction-integrity-distribution",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e0367dc5",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "showDescription": true,
+                "title": "Risk Classification Breakdown - Last 24 Hours",
+                "description": "Real-Time classification of incoming stram into Low, Medium, and High-risk segments",
+                "headerAlignment": "center"
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "risk_level",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "High Risk (Fraud)",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 4,
+            "width": 5,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "high-risk-alerts-today",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0cd320da",
+                  "fields": [
+                    {
+                      "name": "count(customer_id)",
+                      "expression": "COUNT(`customer_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "High-Risk Alerts - Last 24 Hours",
+                "headerAlignment": "center"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(customer_id)"
+                }
+              }
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "dark": "#BF2C2C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total-exposure-last-24-hours",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0cd320da",
+                  "fields": [
+                    {
+                      "name": "sum(amount)",
+                      "expression": "SUM(`amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total Exposure - Last 24 Hours",
+                "headerAlignment": "center"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(amount)"
+                }
+              }
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "dark": "#290604"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "customers-impacted-last-24-hours",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0cd320da",
+                  "fields": [
+                    {
+                      "name": "countdistinct(customer_id)",
+                      "expression": "COUNT(DISTINCT `customer_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Customers Impacted - Last 24 Hours",
+                "headerAlignment": "center"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(customer_id)"
+                }
+              }
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "dark": "#E68B40"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "expusure-province-last-24-hours",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0cd320da",
+                  "fields": [
+                    {
+                      "name": "sum(amount)",
+                      "expression": "SUM(`amount`)"
+                    },
+                    {
+                      "name": "home_province",
+                      "expression": "`home_province`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Regional Fraud Vulnerability Heatmap",
+                "headerAlignment": "center",
+                "showDescription": true,
+                "description": "Breakdown of total fraudulent exposure across South African Provinces. This highlights geographical clusters where 'Impossible Travel' anomalies are most prevalent. "
+              },
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "home_province",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(amount)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(amount)",
+                  "scale": {
+                    "type": "quantitative",
+                    "colorRamp": {
+                      "mode": "scheme",
+                      "scheme": "reds"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 5,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "4795b740",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# <span style=\"text-align:center;display:block\">**Fraud Risk Monitoring Dashboard**</span>\n",
+                "\n",
+                "<span style=\"text-align:center;display:block;\">Real-time monitoring of high-risk transactions and financial exposure</span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 8,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "home-province-filter",
+            "queries": [
+              {
+                "name": "dashboards/01f110939a511f319b9f4d08e2da8230/datasets/01f110dd1ae8199c9afc5b4f9d036c1f_home_province",
+                "query": {
+                  "datasetName": "0cd320da",
+                  "fields": [
+                    {
+                      "name": "home_province",
+                      "expression": "`home_province`"
+                    },
+                    {
+                      "name": "home_province_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Home Province Filter"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "home_province",
+                    "queryName": "dashboards/01f110939a511f319b9f4d08e2da8230/datasets/01f110dd1ae8199c9afc5b4f9d036c1f_home_province"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "11e3325c",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "a8abacb4",
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {},
+              "frame": {
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
