@@ -1,22 +1,27 @@
 # Databricks-Real-Time-Transaction-Fraud-Detection
 The project is about proactively stopping fraudulent banking transactions in real-time instead of reporting back on fraud cases that took place. The projects detects and reports the transaction in real time.
 
-## Executive Summary
-This is a production-grade, end-to-end data pipeline built on the **Databricks Lakehouse** to identify and quarantine fraudelent banking transactions in real-time. This project leverages behavioral fingerprinting and stateful streaming to reduce financial loss and improve system reliability.
+## 1. Executive Summary
+This project simulates a high-velocity banking environment for **1,000 customers**, shifting fraud detection from "Retroactive Reporting" to **"Proactive Prevention."** By leveraging the Medallion Architecture and Stateful Streaming, the system identifies "Impossible Travel" anomalies and high-risk transactions in sub-10 second intervals.
 
-## Busines Problem Statement
+## 2. Busines Problem Statement
 Legacy banking systems often rely on batch processing, leading to significant **detection latency (6+ hours)**. This system addresses that gap by implementing a **sub-second real-time architecture**, allowing the institution to block fraudulent transfers before funds are moved. 
 
-## Architecture Design
+## 3. Solution and How
+The solution is a **Real-Tine Fraud Engine** built on the Databricks Lakehouse. 
+* **The "How":** Ingest raw JSON transactions data and join it with a static **Customer Dimension** table.
+* **The Logic:** I use **Haveraine Formula** to calculate the distance between a customer's registered home address and the current transaction location. If the distance and amount exceed specific thresholds, a **Fraud Score** is generated, and a **SQL Alert** is triggered instantly.
+
+## 4. Architecture Design
 This project follows the **Medallion Architecture** to ensure a governed and auditable data flow:
 
 * **Bronze(Raw)**: Continous ingestion of synthetic API events via **Databricks Auto Loader** with schema evolution.
 * **Silver(Enrinched)**: High Integrity data cleansing using **Delta Live Tables (DLT) Expectations** to quarantine malformed or suspicious records.
-* **Gold(Behavioral)**: Business-level aggregates (e.g., transaction velocity, device dismatch )used for real-time alerting and historical reporting
+* **Gold(Behavioral)**: Business-level aggregates used for the **Excecutive Dashboard** and **SQL Alerts**
 
 ![Fraud Detection Pipeline](docs/Fraud_Detection_Pipeline.png)
 
-## Tech Stack Decision
+## 5. Tech Stack Decision
 
 | Component | Choice | Rationable (The "why"|
 |----------|----------|---------|
@@ -24,25 +29,18 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 | **Processing**   | **PySpark**   |  Used for its horizontal scalability and robust support for stateful streaming.  |
 | **Governance** | **Unity Catalog** | Implements fine-grained access control and end-to-end data lineage for audit compliance. |
 | **DevOps** | **GitHub Actions** | Integrated for automated CI/CD, demonstrating production-read engineering practices. |
+| **Storage** | **Delta Lake** | Provide ACID transactions and "Tinme Travel" for financial auditing. |
+| **Governance** | **Unity Catalog** | Centralized access control for sensitive customer dimension data. |
 
-## Data Generation & API Simulation
-To ensure the pipeline is end-to-end and reproducible, this project utilizes a **Synthetic Data Generation Framework** to simulate a high-velocity banking API.
+## 6. Data Generation & API Simulation
+To simulate a live production environment, we used the dbldatagen framework to mock a 1,000-customer registry.
 
-**The Simulation Engine** 
-We use the `dbldatageb` (Databricks Labs Data Generator) library to mock a real-time stream of financial transactions. This approach allows for:
-* **Behavioral Injection**: Programmatically inject fradulent patterns, such as "Rapid-fire transfers" and "New device logins", which are difficult to find in public static datasets.
-* **Volume Scaling**: The generator is configured to simulate peak traffic loads, testing the horizontal scalability of the **Spark** engine.
-* **Cost Efficiency**: By generating data directly into the landing zone, we can utilize **Auto Loader** with `trigger(available=true)`, processing all "API" records and then automatically shutting down compute to save costs.
+* **Behavioral Injection:** We programmatically inject fraudulent patterns (10% of total volume) where transaction coordinates are physically impossible to reach from the customer's home in the given time.
 
-### Data Schema (Mock API)
-The simulated API delivers JSON payloads with the following behavioral attributes:
-* `transaction_id`: Unique identifier for each event.
-* `customer_id`: Used to build long-term behavioral profiles in the **Gold Layer**
-* `device_id` & `ip_address`: Critical for detecting "Mule Account" activity and geographical anomalies.
-* `amount`: Transaction value, used for threshold-based fraud scoring.
-* `is_fraud`: A hidden ground-truth label used to validate the pipeline's accuracy.
+* **Volume:** Configured to push thousands of records to test the Spark engine's horizontal scalability
 
-## Data Infrastructure & Naming Convention
+
+## 7. Data Infrastructure & Naming Convention
 This project utilizes **Azure Data Lake Storage (ADLS) Gen2** as the underlying storage layer, managed via **Unity Catalog External Locations.**
 
 ### Storahe Hierachy & Nating Convention
@@ -57,12 +55,33 @@ We follow a standard production hierarchy: `storage-account/container/project/en
 | **Gold** | **Behavioral** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/delta/gold_fraud_alerts/` |
 | **System** | **Checkpoints** | `abfss://fraud-sentinel@giftmapote2ete.dfs.core.windows.net/checkpoints/fraud_pipeline/` 
 
-### Engineering Standards & Constraints
+## 8. Engineering Standards
 * **Exactly-Once Processing**: The `checkpoints` directory is mandatory for **Structured Streaming**. It ensures that if the cluster restarts, we resume exactly where we left off without duplicating transactions.
 * **Data Format**: All layers from Bronze onwards are stored in **Delta Lake** format. This allows for "Time Travel" (auditing historical data states), which is a key requirement for financial regulators.
-* **Security**: These paths are mounted via **Unity Catalog External Locations**, ensuring that only the specific service principal used by Databircks job can write to these folders
+* **Security**: These paths are mounted via **Unity Catalog External Locations**, ensuring that only the specific service principal used by Databircks job can write to these folders.
+* **Star Schema Modelling**: Separating the **Fact**(Swipes) from the **Dimension**(Customer Registry) to optimize join performance in the Silver layer.
 
-## Project Roadmap
+## 9. Data Constraints & Synthetic Strategy
+While the pipeline is built for production-scale volumes, this project utilizes a Synthetic Data Generation Framework rather than real banking datasets for two critical reasons:
+
+### Data Privacy & Compliance
+Real-world financial transactions contain PII (Personally Identifiable Information) such as names, account numbers, and exact locations. Using real data would violate privacy regulations and internal bank compliance. By using a simulated dataset for 1,000 customers, I ensured the project is "Secure by Design," allowing for full public transparency and portfolio demonstration without risking data exposure.
+
+### Behavioral Injection (The "Needle in the Haystack")
+Real datasets are often "imbalanced," with fraud occurring in less than 0.1% of cases. To effectively test and demonstrate the Haversine Distance Logic, I programmatically injected specific fraudulent behaviors:
+
+* "Impossible Travel" Scenarios: Creating transactions in different provinces within minutes of each other.
+
+* Velocity Spikes: Simulating a "Mule Account" receiving 10+ transactions in a 60-second window.
+
+* Value Outliers: Injecting high-value swipes that deviate from a customer's historic dimension profile.
+This approach allowed me to verify that my SQL Alerts and Gold Layer scoring were functioning with 100% accuracy.
+
+## 9. Lessons Learned
+
+* **Infrastructure as Code (IaC) Prerequisites**: Setting up the Lakehouse isn't just about coding; its about the handshake between the Cloud Provider and Databricks. I learned that creating **External Locations** in Unity Catalog requires a dedicated **Storage Credential**(an Access Connector in Azure). This `security first` approach is what enables the governance that modern financial 
+  
+## 10.Project Roadmap
 ### 1. Setup & Connectivity (The Foundation)
 * [ ] **GitHub Git Folders:** Generate a GitHub Personal Access Token (PAT) and link it in Databricks to enable version control.
 * [ ] **Unity Catalog External Location:** Register the `giftmapote2ete` storage account as a managed external location.
