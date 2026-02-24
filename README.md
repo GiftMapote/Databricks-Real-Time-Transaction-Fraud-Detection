@@ -13,6 +13,7 @@ The solution is a **Real-Tine Fraud Engine** built on the Databricks Lakehouse.
 * **The Logic:** I use **Haveraine Formula** to calculate the distance between a customer's registered home address and the current transaction location. If the distance and amount exceed specific thresholds, a **Fraud Score** is generated, and a **SQL Alert** is triggered instantly.
 
 ## 4. Architecture Design
+### 4.1 Medallion Architecture
 This project follows the **Medallion Architecture** to ensure a governed and auditable data flow:
 
 * **Bronze(Raw)**: Continous ingestion of synthetic API events via **Databricks Auto Loader** with schema evolution.
@@ -23,6 +24,31 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 
 ![Fraud Detection Pipeline](docs/Fraud_Detection_Pipeline.png)
 
+### 4.2. Live Dashboard
+The **FraudSentinel Dashboard** serves at the primary "Missing Control" for the real-time detection ecosystem. It is engineered to provide high-fedility visibility into the health of the Medallion architecture, ensuring that data is moving from raw injestion to actionable fraud alerts within seconds. 
+
+
+### 4.3 Pipeline Health & Automated Alerting
+A silent pipeline is the most dangerous failure in Data Engineering. To prevent this, **FraudSentinel** utilizes an automated `Heatbeat` monitoring system that checks for data staleness across all Medallion layers.
+#### The Monitoring Logic
+The system doesn't just check if the tables exist, it calculates the **Time Since Last Record** in seconds. If the gap between the current timestamp and the latest record exceeds **300 seconds (5 minutes)**, the hearbeat is considered `lost`.
+#### Business Resilience
+By moving from `Reactive` to `Proactive` monitoring, this system ensures a **99.9% Data Availability SLA**. It eliminates the risk of `missing fraud` due to undetectd pipeline outages, protecting the business from financial exposure during downtime. 
+
+### 4.4 Automated Housekeeping
+In a Delta Lake environment, every update and delete creates new files while keeping the old ones for "Time Travel" capabilities. Without management, this leads to **"Cloud Bloat"**- increased storage costs and slower query performance.
+#### The Cleanup Strategy
+To keep the **FraudSentinel** ecosystem lean and performant, I implemented an automated maintance routine using the `VACUUM` command. This ensures that the system only retains what is necessary for recovery while purging techinical debt.
+#### Key Features:
+* **7-Day Retention Policy**: By setting `RETAIN 168 HOURS`, the system balances storage savings with safety, allowing for data recovery and "Time Travel" for up to one week.
+* **Orchestrated Scheduling:** This isn't a manual task. It is handled via a **Databricks Workflow Job** that runs on a weekly cron schedule.
+* **Multi-Layer Purge:** The job scans the entire Medallion architecture (Bronze, Silve, Gold) to ensure no stale files are left behind in any schema.
+#### Business & Performance Impact:
+* **Cost Reduction:** Minimizes S3/Azure Blob storage costs by deleting gigabytes of unreferenced parquet files.
+
+* **Query Acceleration:** By reducing the number of files the SQL Warehouse has to "scan," dashboard refresh times remain consistent and fast.
+
+* **Operational Maturity:** Demonstrates a "Production-First" mindset by managing the data lifecycle from birth to archive.
 ## 5. Tech Stack Decision
 
 | Component | Choice | Rationable (The "why"|
