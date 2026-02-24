@@ -26,6 +26,7 @@ This project follows the **Medallion Architecture** to ensure a governed and aud
 
 ### 4.2. Live Dashboard
 The **FraudSentinel Dashboard** serves at the primary "Missing Control" for the real-time detection ecosystem. It is engineered to provide high-fedility visibility into the health of the Medallion architecture, ensuring that data is moving from raw injestion to actionable fraud alerts within seconds. 
+![Fraud Detection Dashboard](docs/pictures/fraudDashboard.png)
 
 
 ### 4.3 Pipeline Health & Automated Alerting
@@ -34,6 +35,12 @@ A silent pipeline is the most dangerous failure in Data Engineering. To prevent 
 The system doesn't just check if the tables exist, it calculates the **Time Since Last Record** in seconds. If the gap between the current timestamp and the latest record exceeds **300 seconds (5 minutes)**, the hearbeat is considered `lost`.
 #### Business Resilience
 By moving from `Reactive` to `Proactive` monitoring, this system ensures a **99.9% Data Availability SLA**. It eliminates the risk of `missing fraud` due to undetectd pipeline outages, protecting the business from financial exposure during downtime. 
+![Fraud Detection Dashboard](docs/pictures/pipelineHealthMore.png)
+### Trigger Alert
+![Fraud Detection Dashboard](docs/pictures/pipelineAlert.png)
+### Example of Alert
+![Fraud Detection Dashboard](docs/pictures/alertEmail.jpeg)
+
 
 ### 4.4 Automated Housekeeping
 In a Delta Lake environment, every update and delete creates new files while keeping the old ones for "Time Travel" capabilities. Without management, this leads to **"Cloud Bloat"**- increased storage costs and slower query performance.
@@ -71,7 +78,7 @@ To simulate a live production environment, we used the dbldatagen framework to m
 ## 7. Data Infrastructure & Naming Convention
 This project utilizes **Azure Data Lake Storage (ADLS) Gen2** as the underlying storage layer, managed via **Unity Catalog External Locations.**
 
-### Storahe Hierachy & Nating Convention
+### Storage Hierachy & Nating Convention
 We follow a standard production hierarchy: `storage-account/container/project/environment/layer/.`
 
 ### Storage Paths
@@ -129,4 +136,13 @@ This approach allowed me to verify that my SQL Alerts and Gold Layer scoring wer
 ### 4. Observability & Finalization
 * [ ] **Real-Time Dashboard:** Build a **Databricks SQL Dashboard** showing "Total Fraud Prevented" and "System Latency".
 * [ ] **Final Documentation:** Ensure the README file includes all diagrams and instructions on how to run the pipeline.
+
+### 5. Pictures
+#### Bronze Layer
+![Fraud Detection Dashboard](docs/pictures/bronzeRun.png)
+
+#### Catalog Explorer
+![Fraud Detection Dashboard](docs/pictures/catalogExplorer.png)
+#### Tasks
+![Fraud Detection Dashboard](docs/pictures/jobRunTasks.png)
 
