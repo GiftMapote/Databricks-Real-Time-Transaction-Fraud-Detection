@@ -142,6 +142,74 @@
         "FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
         "WHERE event_time > now() - interval 24 hours"
       ]
+    },
+    {
+      "name": "834bbfcf",
+      "displayName": "Pipeline Activity",
+      "queryLines": [
+        "-- Force-drawing all three layers at zero to maintain visual consistency\n",
+        "WITH base_data AS (\n",
+        "    SELECT \n",
+        "        date_trunc('second', _ingested_at) as flow_time,\n",
+        "        '1. Bronze (Raw)' as layer,\n",
+        "        count(*) as activity_volume\n",
+        "    FROM fraud_sentinel_catalog.detection_service.bronze_transactions\n",
+        "    WHERE _ingested_at > now() - interval 15 minutes\n",
+        "    GROUP BY 1, 2\n",
+        "\n",
+        "    UNION ALL\n",
+        "\n",
+        "    SELECT \n",
+        "        date_trunc('second', _ingested_at) as flow_time,\n",
+        "        '2. Silver (Enriched)' as layer,\n",
+        "        count(*) as activity_volume\n",
+        "    FROM fraud_sentinel_catalog.detection_service.silver_transactions \n",
+        "    WHERE _ingested_at > now() - interval 15 minutes\n",
+        "    GROUP BY 1, 2\n",
+        "\n",
+        "    UNION ALL\n",
+        "\n",
+        "    SELECT \n",
+        "        date_trunc('second', _ingested_at) as flow_time,\n",
+        "        '3. Gold (Scored)' as layer,\n",
+        "        count(*) as activity_volume\n",
+        "    FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        "    WHERE _ingested_at > now() - interval 15 minutes\n",
+        "    GROUP BY 1, 2\n",
+        ")\n",
+        "SELECT * FROM base_data\n",
+        "\n",
+        "UNION ALL \n",
+        "-- These three rows ensure all lines exist at '0' for the current timestamp\n",
+        "SELECT now() as flow_time, '1. Bronze (Raw)' as layer, 0 as activity_volume\n",
+        "UNION ALL \n",
+        "SELECT now() as flow_time, '2. Silver (Enriched)' as layer, 0 as activity_volume\n",
+        "UNION ALL \n",
+        "SELECT now() as flow_time, '3. Gold (Scored)' as layer, 0 as activity_volume\n",
+        "\n",
+        "ORDER BY flow_time DESC;"
+      ]
+    },
+    {
+      "name": "6a2d7df7",
+      "displayName": "Pipeline_Heartbeat_Alert",
+      "queryLines": [
+        "-- Alert Logic: Check if the 'newest' data in each table is older than 5 minutes.\n",
+        "-- Returns 0 if any layer is failing/stale, 1 if all layers are healthy.\n",
+        "\n",
+        "SELECT \n",
+        "    CASE \n",
+        "        WHEN min(seconds_since_last_record) > 300 THEN 0 -- 300 seconds = 5 minutes\n",
+        "        ELSE 1 \n",
+        "    END as is_pipeline_healthy\n",
+        "FROM (\n",
+        "    SELECT unix_timestamp(now()) - unix_timestamp(max(_ingested_at)) as seconds_since_last_record FROM fraud_sentinel_catalog.detection_service.bronze_transactions\n",
+        "    UNION ALL\n",
+        "    SELECT unix_timestamp(now()) - unix_timestamp(max(_ingested_at)) as seconds_since_last_record FROM fraud_sentinel_catalog.detection_service.silver_transactions\n",
+        "    UNION ALL\n",
+        "    SELECT unix_timestamp(now()) - unix_timestamp(max(_ingested_at)) as seconds_since_last_record FROM fraud_sentinel_catalog.detection_service.gold_fraud_alerts\n",
+        ");"
+      ]
     }
   ],
   "pages": [
@@ -216,7 +284,7 @@
           },
           "position": {
             "x": 0,
-            "y": 4,
+            "y": 10,
             "width": 6,
             "height": 7
           }
@@ -331,7 +399,7 @@
           },
           "position": {
             "x": 0,
-            "y": 11,
+            "y": 17,
             "width": 6,
             "height": 7
           }
@@ -709,6 +777,92 @@
             "y": 0,
             "width": 3,
             "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "real-time-pipeline-health-ingestion-pulse",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "834bbfcf",
+                  "fields": [
+                    {
+                      "name": "layer",
+                      "expression": "`layer`"
+                    },
+                    {
+                      "name": "flow_time",
+                      "expression": "`flow_time`"
+                    },
+                    {
+                      "name": "activity_volume",
+                      "expression": "`activity_volume`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Real-Time Pipeline Health & Ingestion Pulse",
+                "headerAlignment": "center"
+              },
+              "mark": {
+                "layout": "stack"
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "flow_time",
+                  "format": {
+                    "type": "date-time",
+                    "date": "locale-short-month",
+                    "time": "locale-hour-minute"
+                  },
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "activity_volume",
+                  "axis": {
+                    "labelAngle": 45
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "scale": {
+                    "type": "quantitative",
+                    "reverse": false
+                  }
+                },
+                "color": {
+                  "fieldName": "layer",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 6
           }
         }
       ],
