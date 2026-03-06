@@ -112,11 +112,11 @@ Real datasets are often "imbalanced," with fraud occurring in less than 0.1% of 
 * Value Outliers: Injecting high-value swipes that deviate from a customer's historic dimension profile.
 This approach allowed me to verify that my SQL Alerts and Gold Layer scoring were functioning with 100% accuracy.
 
-## 9. Lessons Learned
+## 10. Lessons Learned
 
 * **Infrastructure as Code (IaC) Prerequisites**: Setting up the Lakehouse isn't just about coding; its about the handshake between the Cloud Provider and Databricks. I learned that creating **External Locations** in Unity Catalog requires a dedicated **Storage Credential**(an Access Connector in Azure). This `security first` approach is what enables the governance that modern financial 
   
-## 10.Project Roadmap
+## 11.Project Roadmap
 ### 1. Setup & Connectivity (The Foundation)
 * [ ] **GitHub Git Folders:** Generate a GitHub Personal Access Token (PAT) and link it in Databricks to enable version control.
 * [ ] **Unity Catalog External Location:** Register the `giftmapote2ete` storage account as a managed external location.
